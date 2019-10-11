@@ -13,20 +13,21 @@ The example contains the following manifests:
 ## TLS Certificate
 
 To generate a self signed TLS certificate with subject alternative names of
-`example.com` and `my.example.com` you can use the following command:
+`*.example.com` (wildcard DNS name) and `example2.com` you can use the
+following command:
 
 ```
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3560 -nodes \
   -keyout tls.key -out tls.crt \
-  -subj '/CN=example.com' \
+  -subj '/CN=*.example.com' \
   -extensions san -config <(cat << EOF
 [req]
 distinguished_name=req
 [san]
 subjectAltName=@alt_names
 [alt_names]
-DNS.1=example.com
-DNS.2=my.example.com
+DNS.1=*.example.com
+DNS.2=example2.com
 EOF
 )
 ```
@@ -42,8 +43,8 @@ controller can properly associate the certificate:
 ```
   tls:
   - hosts:
-    - example.com
     - my.example.com
+    - example2.com
     secretName: echoserver-tls
 ```
 
@@ -67,26 +68,26 @@ To test the deployment use the following command:
 
 ```
 curl --verbose \
-  --resolve example.com:443:<a_k8s_lb_ip> \
+  --resolve my.example.com:443:<a_k8s_lb_ip> \
   --cacert tls.crt \
-  https://example.com
+  https://my.example.com
 ```
 
 Put one of the IP addresses of your Kubernetes load balancer in the `--resolve`
-parameter value above. This will allow to use the DNS name of `example.com` but
+parameter value above. This will allow to use the DNS name of `my.example.com` but
 resolve it to the IP address of your Kubernetes cluster.
 
 Using `--cacert tls.crt` prevents the TLS error even though we use a
 self-signed certificate.
 
-You can also use `my.example.com` name which is present in the certificate as a
+You can also use `example2.com` name which is present in the certificate as a
 subject alternative name:
 
 ```
 curl --verbose \
-  --resolve my.example.com:443:<a_k8s_lb_ip> \
+  --resolve example2.com:443:<a_k8s_lb_ip> \
   --cacert tls.crt \
-  https://my.example.com
+  https://example2.com
 ```
 
 Both of these tests (the `curl` commands) should return the response from the
@@ -105,5 +106,5 @@ they were created:
 kubectl delete -f namespace.yml
 ```
 
-IMPORTANT: if you have any other resources created in `echoserver` namespace,
-the above command will also delete them.
+IMPORTANT: Do not use the command above if you have any other resources present
+in `echoserver` namespace as the above command will also delete them.
